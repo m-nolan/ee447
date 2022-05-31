@@ -13,7 +13,7 @@ install_requires = [
 ]
 
 setuptools.setup(
-    name='aopy',
+    name='ee447',
     version='1.0.0',
     author='Michael Nolan',
     author_email='manolan@uw.edu',

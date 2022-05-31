@@ -1,4 +1,3 @@
-import os
 import itertools
 import numpy as np
 import pandas as pd
@@ -16,14 +15,15 @@ T_MAX = 6
 T_NUM = 100
 NVALS = 10
 
+# optimization schemes, i.e. what to optimize
 W_SCHEME = np.array(
     [
-        [1.0, 0.0, 0.0, 0.0, 0.0],
-        [0.0, 1.0, 0.0, 0.0, 0.0],
-        [0.0, 0.0, 1.0, 0.0, 0.0],
-        [0.0, 0.0, 0.0, 1.0, 0.0],
-        [0.0, 0.0, 0.0, 0.0, 1.0],
-        [1.2, 0.2, 0.2, 0.2, 0.2],
+        [1.0, 0.0, 0.0, 0.0, 0.0],  # settling time
+        [0.0, 1.0, 0.0, 0.0, 0.0],  # overshoot
+        [0.0, 0.0, 1.0, 0.0, 0.0],  # SSE
+        [0.0, 0.0, 0.0, 1.0, 0.0],  # control effort
+        [0.0, 0.0, 0.0, 0.0, 1.0],  # gain margin
+        [0.2, 0.2, 0.2, 0.2, 0.2],  # equal balance
     ]
 )
 
@@ -57,7 +57,7 @@ def sim_PID(plant, ctrl, t_max=T_MAX, t_num=T_NUM):
         sim: system impulse response simulation
         ctrl_sim: control system impulse response simulation
     """
-    ctrl_u = ctrl / (1 + ctrl*plant)
+    ctrl_u = ctrl / (1 + ctrl*plant) # H feedback assumed 1
     sys = plant * ctrl_u
     sim = control.step_response(sys, t_max, 0, T_num=t_num)
     ctrl_sim = control.step_response(ctrl_u, t_max, 0, T_num=t_num)
@@ -81,8 +81,11 @@ def settling_time(sim):
     y_final = y[-1]
     upper_bound = y_final * SETTLE_THRESH
     lower_bound = y_final / SETTLE_THRESH
-    settle_idx = [idx for idx in range(len(y)) 
-        if np.logical_and(y[idx:] > lower_bound, y[idx:] < upper_bound).all()][0]
+    try:
+        settle_idx = [idx for idx in range(len(y)) 
+            if np.logical_and(y[idx:] > lower_bound, y[idx:] < upper_bound).all()][0]
+    except:
+        breakpoint()
     return time[settle_idx]
 
 def overshoot_ratio(sim):
@@ -290,7 +293,8 @@ def plot_opt_results(plant,results,pp):
             results.at[best_idx,'kd'],
             pp
         )
-        _fig, _ = plot_result(plant,ctrl,y_max,title_str=scheme_str)
+        fig_title_str = f'{scheme_str} $K_d$: {results.at[best_idx,"kd"]:0.3f} $K_p$: {results.at[best_idx,"kp"]:0.3f} $K_i$: {results.at[best_idx,"ki"]:0.3f} '
+        _fig, _ = plot_result(plant,ctrl,y_max,title_str=fig_title_str)
         fig_list.append(_fig)
     return fig_list
 
@@ -299,7 +303,7 @@ def main():
     s = control.tf('s') # laplace variable
     p1 = -1 + 1.5j # define pole
     p2 = p1.conjugate()
-    plant = (s+1)/(s*(s-p1)*(s-p2))
+    plant = (s+3)/(s*(s-p1)*(s-p2))
     # grid search parameters
     kp_center = 1.4
     ki_center = 0.0
