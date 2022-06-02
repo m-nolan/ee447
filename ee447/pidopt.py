@@ -73,7 +73,7 @@ def settling_time(sim):
         sim (control.timeresp.TimeResponseData): simulation of a system step response
 
     Returns:
-        settling_time: system step response settling time
+        settling_time (float): system step response settling time. If the step response does not reach the settling threshold within the simulation time, return np.inf.
     """
     
     time = sim.t.squeeze()
@@ -84,9 +84,10 @@ def settling_time(sim):
     try:
         settle_idx = [idx for idx in range(len(y)) 
             if np.logical_and(y[idx:] > lower_bound, y[idx:] < upper_bound).all()][0]
+        settle_time = time[settle_idx]
     except:
-        breakpoint()
-    return time[settle_idx]
+        settle_time = np.inf
+    return settle_time
 
 def overshoot_ratio(sim):
     """overshoot_ratio
@@ -208,7 +209,7 @@ def grid_search_PID(plant,kp_lim,ki_lim,kd_lim,pp,w_scheme,nvals):
         kp_lim (tuple): (min, max) proportional gain for PID controller
         ki_lim (tuple): (min, max) integrative gain for PID controller
         kd_lim (tuple): (min, max) derivative gain for PID controller
-        pp (float): offset gain for PID controller
+        pp (float): offset pole for PID controller
         w_scheme (np.array): weight array for all optimization schemes.
         nvals (int): number of sampled parameter values for each range
 
